@@ -1,0 +1,79 @@
+# =====================
+# Go build artifacts
+# =====================
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+*.test
+*.out
+*.prof
+*.coverprofile
+
+/bin/
+/dist/
+/build/
+
+# Go workspace (Go 1.18+)
+go.work
+go.work.sum
+
+# =====================
+# Environment variables
+# =====================
+.env
+.env.*
+!.env.example
+
+# =====================
+# PostgreSQL
+# =====================
+# Local DB data (ถ้า run postgres เอง)
+pgdata/
+postgres-data/
+db-data/
+
+# SQL dump / backup
+*.sql
+*.dump
+*.backup
+
+# =====================
+# Migration tools
+# =====================
+# golang-migrate / goose / atlas
+migrations/*.log
+atlas.hcl.bak
+
+# =====================
+# Logs
+# =====================
+*.log
+logs/
+
+# =====================
+# IDE / Editor
+# =====================
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# =====================
+# OS junk
+# =====================
+.DS_Store
+Thumbs.db
+
+# =====================
+# Docker
+# =====================
+docker-compose.override.yml
+
+# =====================
+# Test / coverage
+# =====================
+coverage.out
+coverage.html
