@@ -36,7 +36,7 @@ postgres-data/
 db-data/
 
 # SQL dump / backup
-*.sql
+# *.sql # ถ้าต้องการ ignore ไฟล์ .sql ทั้งหมด ให้ uncomment บรรทัดนี้ (ตอนนี้ showcase ไม่ ignore ไฟล์ .sql ทั้งหมด)
 *.dump
 *.backup
 
