@@ -2,7 +2,9 @@ package main
 
 import (
 	"context"
+	"errors"
 	"log"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -20,9 +22,9 @@ func main() {
 		log.Println("No .env file found")
 	}
 
-	// Create context with cancellation
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	// Setup Context
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
 
 	// Connect to database
 	dbConfig := database.LoadConfigFromEnv()
@@ -30,11 +32,19 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to connect to database: %v", err)
 	}
-	defer db.Close()
+	defer func() {
+		log.Println("Closing database connection...")
+		db.Close()
+	}()
 
 	log.Println("✅ Connected to PostgreSQL")
 
-	// Create server
+	// Run Migrations
+	if err := database.RunMigrations(ctx, db); err != nil {
+    log.Fatalf("Migration failed: %v", err)
+	}
+
+	// Create & Start Server
 	port := os.Getenv("SERVER_PORT")
 	if port == "" {
 		port = "8080"
@@ -42,20 +52,28 @@ func main() {
 
 	srv := server.New(":"+port, db)
 
-	// Graceful shutdown
+	// Run Server in Goroutine
 	go func() {
-		sigCh := make(chan os.Signal, 1)
-		signal.Notify(sigCh, os.Interrupt, syscall.SIGTERM)
-		<-sigCh
-
-		log.Println("Shutting down gracefully...")
-		cancel()
-		time.Sleep(2 * time.Second)
-		os.Exit(0)
+		log.Printf("🚀 Server starting on :%s\n", port)
+		if err := srv.Start(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			log.Fatalf("Server forced to shutdown: %v", err)
+		}
 	}()
 
-	log.Printf("🚀 Server starting on :%s\n", port)
-	if err := srv.Start(); err != nil {
-		log.Fatal(err)
+	// Wait for interrupt signal (Ctrl+C) or SIGTERM (from Docker/K8s)
+	<-ctx.Done()
+
+	// Receiving the signal, begin the shutdown process.
+	log.Println("Shutting down gracefully... (Press Ctrl+C again to force)")
+
+	// Create a new context with timeout for the shutdown process
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	
+	// Attempt Graceful Shutdown
+	if err := srv.Shutdown(shutdownCtx); err != nil {
+		log.Printf("Graceful shutdown failed: %v", err)
 	}
+
+	log.Println("👋 Server exited")
 }

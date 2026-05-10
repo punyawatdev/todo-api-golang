@@ -2,6 +2,7 @@ package server
 
 import (
 	"net/http"
+	"context"
 
 	"todo-api/internal/todo"
 
@@ -11,6 +12,7 @@ import (
 type Server struct {
 	addr string
 	db   *pgxpool.Pool
+	httpServer *http.Server
 }
 
 func New(addr string, db *pgxpool.Pool) *Server {
@@ -30,5 +32,14 @@ func (s *Server) Start() error {
 	mux.Handle("/todos", handler)
 	mux.Handle("/todos/{id}", handler)
 
-	return http.ListenAndServe(s.addr, mux)
+	s.httpServer = &http.Server{
+    Addr:    s.addr,
+    Handler: mux,
+	}
+
+	return s.httpServer.ListenAndServe()
+}
+
+func (s *Server) Shutdown(ctx context.Context) error {
+  return s.httpServer.Shutdown(ctx)
 }

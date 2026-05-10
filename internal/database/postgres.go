@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"time"
+	"log"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -64,4 +65,23 @@ func getEnv(key, fallback string) string {
 		return value
 	}
 	return fallback
+}
+
+func RunMigrations(ctx context.Context, db *pgxpool.Pool) error {
+	// next level: use embedded migrations with github.com/golang-migrate/migrate
+	log.Println("Running database migrations...")
+
+	path := "migrations/001_create_todos.sql"
+	query, err := os.ReadFile(path)
+	if err != nil {
+			return fmt.Errorf("could not read migration file: %w", err)
+	}
+
+	_, err = db.Exec(ctx, string(query))
+	if err != nil {
+			return fmt.Errorf("could not run migration: %w", err)
+	}
+
+	log.Println("Migrations completed successfully")
+	return nil
 }
